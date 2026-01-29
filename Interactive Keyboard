@@ -1,5 +1,5 @@
 
-CLick the link to interact with my project on openprocessing.org!!! (https://openprocessing.org/sketch/2723070)
+Copy and paste the link to interact with my project through openprocessing.org!!! "https://openprocessing.org/sketch/2723070"
 
 
 let synth;                         // p5.PolySynth sound engine
