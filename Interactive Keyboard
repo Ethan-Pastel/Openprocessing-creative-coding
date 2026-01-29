@@ -1,248 +1,28 @@
+# 🎹 Interactive Keyboard
 
-Copy and paste the link to interact with my project through openprocessing.org!!! "https://openprocessing.org/sketch/2723070"
+This project is an interactive piano keyboard built in **OpenProcessing**.
 
-<iframe src="https://openprocessing.org/sketch/2723070/embed/?plusEmbedHash=f93487fa&userID=546401&plusEmbedTitle=true&show=sketch" width="400" height="400"></iframe>
+Users can play notes using:
 
-let synth;                         // p5.PolySynth sound engine
-let whites = [], blacks = [];      // PianoKeys
-let heldMouseKey = null;           // which state the mouse is in, currently null
-let neutralBG;                     // constant neutral background color
-let bgColor;                       // current background color
+- Mouse clicks
+- Keyboard keys (C D E F G A B)
+- Sharp notes with (R T Y U I)
 
-const WHITE_LAYOUT = [
-  {name:'C4', midi:60}, {name:'D4', midi:62}, {name:'E4', midi:64},
-  {name:'F4', midi:65}, {name:'G4', midi:67}, {name:'A4', midi:69}, {name:'B4', midi:71},
-];
+---
 
-const BLACK_LAYOUT = [
-  {name:'C#4', midi:61, leftWhiteIndex:0},
-  {name:'D#4', midi:63, leftWhiteIndex:1},
-  {name:'F#4', midi:66, leftWhiteIndex:3},
-  {name:'G#4', midi:68, leftWhiteIndex:4},
-  {name:'A#4', midi:70, leftWhiteIndex:5},
-];
+## ✅ Try it Live Here
 
-// Keyboard mapping (letters -> MIDI)
-// Naturals: C D E F G A B
-// Sharps:   R=C#4, T=D#4, Y=F#4, U=G#4, I=A#4
-const KEY_TO_MIDI = { c:60, d:62, e:64, f:65, g:67, a:69, b:71, r:61, t:63, y:66, u:68, i:70 };
+👉 **OpenProcessing Link:**  
+https://openprocessing.org/sketch/2723070
 
-const keyboardHeld = new Set();    // set of MIDI notes on the keyboard
-const midiToKeyObj = new Map();    // MIDI -> PianoKey object
+---
 
-// Keyboard Size
-const PIANO_W = 1100;
-const PIANO_H = 320;
+## 🎥 Embedded View (GitHub Pages Only)
 
-// Creating PianoKey class 
-class PianoKey {
-  constructor(x, y, w, h, { name, midi }, isBlack=false) {
-    this.x=x; this.y=y; this.w=w; this.h=h;
-    this.name=name; this.midi=midi; this.isBlack=isBlack;
-    this.active=false;                        
-  }
-  contains(px, py){ return px>=this.x && px<=this.x+this.w && py>=this.y && py<=this.y+this.h; }
-  setActive(v){ this.active=v; }
+If you're viewing this on GitHub Pages, the sketch appears below:
 
-  // When active, white keys become and rgbColor, if not, white
-  // Black keys stay dark (slightly brighter if active).
-  draw(rgbColor){
-    if (this.isBlack) {
-      noStroke(); fill(this.active ? 70 : 20);
-      rect(this.x, this.y, this.w, this.h, this.w);
-
-      // Arc to give definition to the piano key 
-      noFill(); stroke(255,40); strokeWeight(2);
-      arc(this.x + this.w*0.5, this.y + this.h*0.25, this.w*0.8, this.h*0.3, 3.14, 6.28);
-
-    } else {
-      stroke(0,40); strokeWeight(2);
-      fill(this.active && rgbColor ? rgbColor : 255);
-      rect(this.x, this.y, this.w, this.h, 8);
-
-      // divider line 
-      stroke(0,25);
-      line(this.x+this.w, this.y, this.x+this.w, this.y+this.h);
-
-      // note label (drops octave number)
-      noStroke(); fill(0);
-      textAlign(CENTER, BOTTOM); textSize(14);
-      text(this.name.replace('4',''), this.x + this.w*0.5, this.y + this.h - 6);
-    }
-  }
-}
-
-
-function setup(){
-  createCanvas(PIANO_W, PIANO_H);
-  textFont('sans-serif');
-  noLoop();                            
-  neutralBG = color(235);               
-  bgColor = color(neutralBG);  // start at neutral
-  synth = new p5.PolySynth(p5.MonoSynth, 8);
-  synth.setADSR(0.01, 0.08, 0.6, 0.12);
-  outputVolume(0.9);
-  layoutKeys();
-}
-
-function windowResized(){
-  resizeCanvas(PIANO_W, PIANO_H);
-  layoutKeys();
-  redraw();
-}
-// clears prior state
-function layoutKeys(){
-  whites.length = 0; blacks.length = 0; midiToKeyObj.clear();
-	const margin=24, x0=margin, y0=margin;
-  const kbW = width - margin*2;
-  const whiteW = kbW / WHITE_LAYOUT.length;
-  const whiteH = height - margin*2;
-
-// whites
-  for (let i=0;i<WHITE_LAYOUT.length;i++){
-    const spec = WHITE_LAYOUT[i];
-    const k = new PianoKey(x0 + i*whiteW, y0, whiteW, whiteH, spec, false);
-    whites.push(k); midiToKeyObj.set(spec.midi, k);
-  }
-
-// blacks
-  const blackW = whiteW*0.6, blackH = whiteH*0.64;
-  for (const b of BLACK_LAYOUT){
-    const cx = x0 + (b.leftWhiteIndex+1)*whiteW;
-    const k  = new PianoKey(cx - blackW/2, y0, blackW, blackH, b, true);
-    blacks.push(k); midiToKeyObj.set(b.midi, k);
-  }
-}
-
-// Draw loop 
-function draw(){
-  const someoneHolding = (heldMouseKey !== null) || (keyboardHeld.size > 0);
-
-// RGB pulse 
-  const pulse = rgbPulse();
-
-// Background target: RGB while held, neutral otherwise
-  const bgTarget = someoneHolding ? pulse : neutralBG;
-
-// Fade bgColor (faster when moving to RGB, slower when fading out)
-  const amt = someoneHolding ? 0.25 : 0.08;       
-  bgColor = lerpColor(bgColor, bgTarget, amt);
-  background(bgColor);
-
-// Draw keys in RGB. Inactive keys are white
-	
-  for (const w of whites) w.draw(someoneHolding ? pulse : null);
-  for (const b of blacks) b.draw(someoneHolding ? pulse : null);
-
-// HUD label
-  noStroke(); fill(255, 255, 255, 210);
-  rect(16,12,620,24,8);
-  fill(0); textAlign(LEFT,CENTER); textSize(12);
-  text('Use the mouse or keys: C D E F G A B (sharps: R T Y U I), to play the Keyboard!!!.', 24,24);
-
-// keep animating while holding OR while the background is still fading 
-  if (someoneHolding || !bgIsNearTarget(bgColor, bgTarget)) {
-  } else {
-    noLoop();  
-  }
-}
-
-// RGB pulse generator
-function rgbPulse(){
-  const t = millis() * 0.004;
-  const twoPi = 6.28318;                              
-  const R = map(Math.sin(t), -1, 1, 80, 255);
-  const G = map(Math.sin(t + twoPi/3), -1, 1, 80, 255);
-  const B = map(Math.sin(t + 2*twoPi/3), -1, 1, 80, 255);
-  return color(R, G, B);
-}
-
-// Helpers for fading 
-function bgIsNearTarget(c1, c2){
-  const d = colorDist(c1, c2);
-  return d < 4;  
-}
-
-
-// Euclidean distance in RGB 
-function colorDist(c1, c2){
-  const r = red(c1) - red(c2);
-  const g = green(c1) - green(c2);
-  const b = blue(c1) - blue(c2);
-  return Math.sqrt(r*r + g*g + b*b);
-}
-
-// Sound helpers
-const midiFreq = m => midiToFreq(m);
-
-function noteOn(m){
-  const k = midiToKeyObj.get(m); if(!k) return;
-  if (!k.active){
-    k.setActive(true);
-    synth.noteAttack(midiFreq(m), 0.95);
-  }
-}
-
-function noteOff(m){
-  const k = midiToKeyObj.get(m); if(!k) return;
-  if (k.active){
-    k.setActive(false);
-    synth.noteRelease(midiFreq(m));
-  }
-}
-
-function anyHeld(){ return heldMouseKey !== null || keyboardHeld.size > 0; }
-
-// Mouse
-function keyAt(px,py){
-  let k = blacks.find(k => k.contains(px,py));
-  if (!k) k = whites.find(k => k.contains(px,py));
-  return k || null;
-}
-
-function mousePressed(){
-  userStartAudio();
-  const k = keyAt(mouseX,mouseY);
-  if (k){ heldMouseKey = k; noteOn(k.midi); }
-  loop();      
-  redraw();
-}
-
-function mouseDragged(){
-  const k = keyAt(mouseX,mouseY);
-  if (k !== heldMouseKey){
-    if (heldMouseKey) noteOff(heldMouseKey.midi);
-    heldMouseKey = k;
-    if (heldMouseKey) noteOn(heldMouseKey.midi);
-  }
-  redraw();
-}
-
-function mouseReleased(){
-  if (heldMouseKey) noteOff(heldMouseKey.midi);
-  heldMouseKey = null;
-  loop();      // keep looping so background can fade out smoothly
-  redraw();
-}
-
-// Keyboard 
-function keyPressed() {
-  const m = KEY_TO_MIDI[key.toLowerCase()];
-  if (m == null || keyboardHeld.has(m)) return;
-
-  userStartAudio();
-  keyboardHeld.add(m);
-  noteOn(m);
-  loop();      
-  redraw();
-}
-
-function keyReleased() {
-  const m = KEY_TO_MIDI[key.toLowerCase()];
-  if (m == null) return;
-
-  keyboardHeld.delete(m);
-  noteOff(m);
-  loop();      
-  redraw();
-}
+<iframe 
+  src="https://openprocessing.org/sketch/2723070/embed/?plusEmbedHash=f93487fa&userID=546401&plusEmbedTitle=true&show=sketch" 
+  width="600" 
+  height="600">
+</iframe>
