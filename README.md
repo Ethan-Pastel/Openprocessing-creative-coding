@@ -1,2 +1,32 @@
 # Openprocessing-creative-coding
 Created intensive, yet fun coding projects through Openprocessing.org
+
+
+# 🎹 Interactive Keyboard
+
+This project is an interactive piano keyboard built in **OpenProcessing**.
+
+Users can play notes using:
+
+- Mouse clicks
+- Keyboard keys (C D E F G A B)
+- Sharp notes with (R T Y U I)
+
+---
+
+## ✅ Try it Live Here
+
+👉 **OpenProcessing Link:**  
+https://openprocessing.org/sketch/2723070
+
+---
+
+## 🎥 Embedded View (GitHub Pages Only)
+
+If you're viewing this on GitHub Pages, the sketch appears below:
+
+<iframe 
+  src="https://openprocessing.org/sketch/2723070/embed/?plusEmbedHash=f93487fa&userID=546401&plusEmbedTitle=true&show=sketch" 
+  width="600" 
+  height="600">
+</iframe>
